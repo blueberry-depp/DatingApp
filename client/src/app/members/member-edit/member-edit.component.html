@@ -1,0 +1,65 @@
+<div class="row" *ngIf="member">
+  <div class="col-4">
+    <h1>Your profile</h1>
+  </div>
+  <div class="col-8">
+    <div class="alert alert-info" *ngIf="editForm.dirty">
+      <strong>Information: </strong> You have made changes, any unsaved changes will be lost
+    </div>
+  </div>
+  <div class="col-4">
+    <div class="card">
+      <img src="{{member.photoUrl || './assets/user.png'}}" alt="{{member.knownAs}}" class="card-img-top img-thumbnail">
+      <div class="card-body">
+        <div>
+          <strong>Location: </strong>
+          <p>{{member.city}}, {{member.country}}</p>
+        </div>
+        <div>
+          <strong>Age: </strong>
+          <p>{{member.age}}</p>
+        </div>
+        <div>
+          <strong>Last active: </strong>
+          <p>{{member.lastActive}}</p>
+        </div>
+        <div>
+          <strong>Member Since: </strong>
+          <p>{{member.created}}</p>
+        </div>
+      </div>
+      <div class="card-footer d-grid">
+        <!-- Even though we've submitted our changes, we need to reset our form state. -->
+        <button [disabled]="!editForm.dirty"  form="editForm" class="btn btn-success">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-8">
+    <tabset class="member-tabset">
+      <tab heading="About {{member.knownAs}}">
+        <!-- #edit: template reference variable -->
+        <form #editForm="ngForm" (ngSubmit)="updateMember()" id="editForm">
+          <h4>Description.</h4>
+          <!-- Angular uses this name property to track the property inside the form and [(ngModel)] gives us the binding-->
+          <textarea [(ngModel)]="member.introduction" class="form-control" name="introduction" rows="6"></textarea>
+          <h4 class="mt-2">Looking for</h4>
+          <textarea [(ngModel)]="member.lookingFor" class="form-control" name="lookingFor" rows="6"></textarea>
+          <h4 class="mt-2">Interests</h4>
+          <textarea [(ngModel)]="member.interests" class="form-control" name="interests" rows="6"></textarea>
+          <h4 class="mt-2">Location details:</h4>
+          <div class="form-inline">
+            <label for="city">City:</label>
+            <input [(ngModel)]="member.city" type="text" name="city" class="form-control mx-2">
+            <label for="country ">Country :</label>
+            <input [(ngModel)]="member.country" type="text" name="country" class="form-control mx-2">
+          </div>
+        </form>
+      </tab>
+      <tab heading="Edit Photos">
+        <!-- [member] is the input property -->
+        <app-photo-editor [member]="member" > </app-photo-editor>
+      </tab>
+    </tabset>
+  </div>
+</div>
