@@ -1,5 +1,7 @@
 import {Component, Input, OnInit} from '@angular/core';
 import {Member} from "../../_models/member";
+import {MembersService} from "../../_services/members.service";
+import {ToastrService} from "ngx-toastr";
 
 @Component({
   selector: 'app-member-card',
@@ -8,12 +10,22 @@ import {Member} from "../../_models/member";
 })
 export class MemberCardComponent implements OnInit {
   // Receiving this data from its parent, which is the member list component.
-  // @ts-ignore
-  @Input() member: Member
+  @Input() member!: Member
 
-  constructor() { }
+  constructor(
+    private memberService: MembersService,
+    private toastr: ToastrService
+  ) { }
 
   ngOnInit(): void {
+  }
+
+  addLike(member: Member) {
+    // We're not returning anything from the API that we're going to use inside our client here, so we'll just have to empty parentheses.
+    this.memberService.addLike(member.username).subscribe(() => {
+      this.toastr.success(`You have liked ${member.knownAs}`)
+    // we don't need to do anything with the error because interceptor is taking care of that for us.
+    })
   }
 
 }

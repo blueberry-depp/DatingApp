@@ -47,7 +47,9 @@ namespace API.Controllers
             return new UserDto
             {
                 Username = user.UserName,
-                Token = _tokenService.CreateToken(user)
+                Token = _tokenService.CreateToken(user),
+                KnownAs = user.KnownAs,
+                Gender = user.Gender
             };
         }
 
@@ -57,7 +59,7 @@ namespace API.Controllers
             // Get the user from database
             var user = await _context.Users
                 .Include(p => p.Photos) // Eagerly loading the photo too.
-                .SingleOrDefaultAsync(x => x.UserName == loginDto.Username);
+                .SingleOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
 
             if (user == null) return Unauthorized("Invalid username");
 
@@ -79,7 +81,10 @@ namespace API.Controllers
                 // Even though that they have registered, it doesn't mean they've got a photo, the url maybe null, so we gave it optional property.
                 // and this source is no longer going to be empty if the user doesn't have a photo, that will not cause an exception here
                 // because it's simply going to return null, but if it doesn't have any photos to work with, that's when we see the exception.
-                PhotoUrl = user.Photos.FirstOrDefault(x => x.IsMain)?.Url
+                PhotoUrl = user.Photos.FirstOrDefault(x => x.IsMain)?.Url,
+                KnownAs = user.KnownAs,
+                Gender = user.Gender
+
             };
 
         }

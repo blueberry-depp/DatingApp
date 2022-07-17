@@ -19,7 +19,7 @@ export class LoadingInterceptor implements HttpInterceptor {
     // And once the request comes back, we know it's completed, so we can turn off our busy Spinner.
     return next.handle(request).pipe(
       // Add fake delay.
-      delay(1000),
+      delay(500),
       // This gives to do something when things have completed.
       finalize(() => {
         this.busyService.idle()

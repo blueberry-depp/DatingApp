@@ -40,14 +40,16 @@ export class ErrorInterceptor implements HttpInterceptor {
                     modalStateErrors.push(error.error.errors[key])
                   }
                 }
-
                 // We want to display a list of validation errors underneath the form.
                 throw modalStateErrors.flat()
-
               }
-                else {
-                // If it's just a normal 400 error
+                else if (typeof(error.error) === 'object') {
+                // If it's just a normal 400 error.
+                // Check if the error object is an object.
                 this.toastr.error(error.statusText === "OK" ? "Bad Request" : error.statusText, error.status);
+              } else {
+                this.toastr.error(error.error, error.status);
+                console.log(error.error)
               }
               break
 

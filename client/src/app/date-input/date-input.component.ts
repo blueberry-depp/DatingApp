@@ -11,7 +11,7 @@ export class DateInputComponent implements ControlValueAccessor {
   @Input() label!: string
   @Input() maxDate!: Date
   // When we use partial, what we are really saying here is that every single property inside this type is going to be optional,
-  // we don't have to provide all of the different configuration options. We can only apply or we could only provide a couple of them,
+  // we don't have to provide all the different configuration options. We can only apply, or we could only provide a couple of them,
   // if we didn't use partial, then we would have to provide every single possible configuration option.
   bsConfig?: Partial<BsDatepickerConfig>
 

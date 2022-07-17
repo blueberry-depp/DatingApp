@@ -1,5 +1,6 @@
 ﻿using API.DTOs;
 using API.Entities;
+using API.Helpers;
 using API.Interfaces;
 using AutoMapper;
 using AutoMapper.QueryableExtensions;
@@ -38,11 +39,44 @@ namespace API.Data
                .SingleOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<MemberDto>> GetMembersAsync()
+        // Because this is something that we're only ever going to read from. We're not going to do anything with these entities.
+        // Get the PagedList. 
+        public async Task<PagedList<MemberDto>> GetMembersAsync(UserParams userParams)
         {
-            return await _context.Users
-                .ProjectTo<MemberDto>(_mapper.ConfigurationProvider)
-               .ToListAsync();
+            // This is an expression tree that's going to go to our database or entity framework is going to build up this query as an expression tree,
+            // and then when we execute the ToListAsync, that's when it goes and executes the request in database.
+            // This is IQueryable.
+            // Because this is something that we're only ever going to read from. We're not going to do anything with these entities. So all
+            // we need to do is read this.
+            // AsQueryable(): This will give us an opportunity to do something with this query and decide what we want to filter by, for instance.
+            var query = _context.Users.AsQueryable();
+
+            // Filtering it before ProjectTo.
+            query = query.Where(u => u.UserName != userParams.CurrentUsername);
+            query = query.Where(u => u.Gender == userParams.Gender);
+
+            // Filter by the age of the user. 
+            var minDob = DateTime.Today.AddYears(-userParams.MaxAge - 1); // because this is based on today's dates we give it minus 1.
+            var maxDob = DateTime.Today.AddYears(-userParams.MinAge);
+            query = query.Where(u => u.DateOfBirth >= minDob && u.DateOfBirth <= maxDob);
+
+            // Filtering by sorting and we use switch expression.
+            query = userParams.OrderBy switch
+            {
+                // Case for created.
+                "created" => query.OrderByDescending(u => u.Created),
+                // For default case.
+                _ => query.OrderByDescending(u => u.LastActive),
+
+            };
+
+            // And create this PagedList and passing those parameters, and we are no longer executing this,
+            // we're simply passing this to another method that's simply going to execute ToListAsync(),
+            // we're still not executing anything inside this method because that's still being taken care of inside reates async method.
+            // ProjectTo before we send it to lists.
+            // .AsNoTracking() Turns off to tracking in entity framework. 
+            return await PagedList<MemberDto>.CreateAsync(query.ProjectTo<MemberDto>(_mapper.ConfigurationProvider).AsNoTracking(), 
+                userParams.PageNumber, userParams.PageSize);
         }
 
         public async Task<AppUser> GetUserByIdAsync(int id)

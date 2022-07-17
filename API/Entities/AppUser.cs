@@ -22,10 +22,12 @@ namespace API.Entities
         // One to many relationship.
         public ICollection<Photo> Photos { get; set; }
 
-        /*public int GetAge()
-        {
-            return DateOfBirth.CalculateAge();
-        }*/
+        // LikedByUser: who has liked the currently logged in user.
+        public ICollection<UserLike> LikedByUsers { get; set; }
+        // This is the list of users, that are currently logged in user has liked.
+        public ICollection<UserLike> LikedUsers { get; set; }
+
+
 
 
     }

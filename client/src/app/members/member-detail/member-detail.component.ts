@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import {MembersService} from "../../_services/members.service";
 import {Member} from "../../_models/member";
-import {HttpClient} from "@angular/common/http";
 import {ActivatedRoute} from "@angular/router";
 import {NgxGalleryAnimation, NgxGalleryImage, NgxGalleryOptions} from "@kolkov/ngx-gallery";
 
@@ -25,7 +24,7 @@ export class MemberDetailComponent implements OnInit {
   ngOnInit(): void {
     // Everything that's going on in here is synchronous, everything's going to happen one after the other, and there's no waiting for something.
 
-    this.loadMember()
+    this.loadMembers()
 
     this.galleryOptions = [
       {
@@ -56,10 +55,9 @@ export class MemberDetailComponent implements OnInit {
     return imageUrls
   }
 
-  loadMember() {
+  loadMembers() {
     // username: url parameter in app-routing-module
-    // @ts-ignore
-    this.memberService.getMember(this.route.snapshot.paramMap.get('username')).subscribe(member => {
+    this.memberService.getMember(this.route.snapshot.paramMap.get('username')!).subscribe(member => {
       this.member = member
       this.galleryImages = this.getImage()
 

@@ -40,10 +40,10 @@ export class MemberEditComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.loadMember()
+    this.loadMembers()
   }
 
-  loadMember() {
+  loadMembers() {
     // username: url parameter in app-routing-module
     this.memberService.getMember(this.user.username).subscribe(member => {
       this.member = member

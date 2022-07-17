@@ -19,9 +19,11 @@ namespace API.Services
         public string CreateToken(AppUser user)
         {
             var claims = new List<Claim>
-            {
-                // Add new claim
-                new Claim(JwtRegisteredClaimNames.NameId, user.UserName)
+            { 
+                // Add new claim setting the name ID to the user's username.
+                // Set the UniqueName for username and NameId for users's id.
+                new Claim(JwtRegisteredClaimNames.NameId, user.Id.ToString()),
+                new Claim(JwtRegisteredClaimNames.UniqueName, user.UserName),
             };
 
             // Create new credentials

@@ -1,7 +1,69 @@
+<div class="text-center mt-3">
+  <!-- We may have not pagination, remember the order of things, the angular is going to construct component and view, -->
+  <!-- the template is going to get constructed before we receive the data because there's going to be what we've already added the delay for sure to our API.-->
+  <h2>Your matches - {{pagination?.totalItems}} found</h2>
+</div>
+
+<div class="container mt-3">
+  <!-- #form: template form -->
+  <form #form="ngForm" class="d-flex mb-3" (ngSubmit)="loadMembers()" autocomplete="off">
+    <div class="d-flex mx-2">
+      <label class="col-form-label me-2">Age from: </label>
+      <!-- Because we're going to be using the ngModel for two way binding, we need to give this name -->
+      <input type="number" class="form-control ml-1" style="width: 70px;" name="minAge" [(ngModel)]="userParams.minAge">
+    </div>
+
+    <div class="d-flex px-2">
+      <label class="col-form-label me-2">Age to: </label>
+      <input type="number" class="form-control ml-1" style="width: 70px;" name="maxAge" [(ngModel)]="userParams.maxAge">
+    </div>
+
+    <div class="d-flex px-2">
+      <label class="col-form-label me-2">Show: </label>
+      <select [(ngModel)]="userParams.gender" name="gender" style="width: 130px " class="form-control ml-1" >
+        <option *ngFor="let gender of genderList" [value]="gender.value">{{gender.display}}</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary ms-1" type="submit">Apply Filters</button>
+    <button (click)="resetFilters()" class="btn btn-info ms-1">Reset Filters</button>
+    <div class="col">
+      <div class="btn-group float-end">
+        <!-- Call the loadMembers(), then update the userParams.orderBy and set the value what we have inside the button radio -->
+        <button (click)="loadMembers()"
+                [(ngModel)]="userParams.orderBy"
+                btnRadio="lastActive"
+                name="orderBy"
+                class="btn btn-primary"
+                type="button">Last Active</button>
+
+        <button (click)="loadMembers()"
+                [(ngModel)]="userParams.orderBy"
+                btnRadio="created"
+                name="orderBy"
+                class="btn btn-primary"
+                type="button">Newest Members</button>
+      </div>
+    </div>
+  </form>
+</div>
+
 <div class="row">
   <!-- | async: so we can subscribe to this observable. -->
-  <div *ngFor="let member of members$ | async" class="col-2">
+  <div *ngFor="let member of members" class="col-2">
     <!-- Pass down the member as an input property -->
     <app-member-card [member]="member"></app-member-card>
   </div>
+</div>
+
+<div class="d-flex justify-content-center" *ngIf="pagination">
+  <!-- Use ngModel in here for two way binding so that we can receive the current page and we can also update the current page going the other way as well. -->
+  <pagination
+    [boundaryLinks]="true"
+    [totalItems]="pagination.totalItems"
+    [itemsPerPage]="pagination.itemPerPage"
+    [(ngModel)]="pagination.currentPage"
+    (pageChanged)="pageChanged($event)"
+    previousText="&lsaquo;" nextText="&rsaquo;" firstText="&laquo;" lastText="&raquo;">
+  </pagination>
 </div>

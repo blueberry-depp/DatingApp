@@ -6,6 +6,7 @@ using System.Security.Claims;
 using AutoMapper;
 using API.Extensions;
 using API.Entities;
+using API.Helpers;
 
 namespace API.Controllers
 {
@@ -28,10 +29,30 @@ namespace API.Controllers
 
 
         [HttpGet]
-        // IEnumerable is just use simple iteration over a colection a specified type, not have the method, otherwise in List, we can use many method associated with List
-        public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers()
+        // IEnumerable is just use simple iteration over a colection a specified type, not have the method,
+        // otherwise in List, we can use many method associated with List.
+        // UserParams userParams is query string. We have to specified it. 
+        // The error is shown because we didn't supply anything in the query string in url and we've got the UserParams objects there,
+        // then that's the reason they got confused. And it's OK with that being empty, but it just didn't know what to do in that case,
+        // and add FromQuery guarantees that our request works.
+        // We also populate the current user name property into the userParams and set a default property that is just the opposite to their
+        // current gender if they don't specify anything inside userParams.
+        public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers([FromQuery] UserParams userParams)
         {
-            var users = await _userRepository.GetMembersAsync();
+            // We need to get the current user in order to get access to the gender.
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUserName());
+            userParams.CurrentUsername = user.UserName;
+
+            if (string.IsNullOrEmpty(userParams.Gender))
+            {
+                userParams.Gender = user.Gender == "male" ? "female" : "male";  
+            }
+
+            // This is PagedList of type MemberDto. And this means we've got our pagination information inside here as well.
+            var users = await _userRepository.GetMembersAsync(userParams);
+
+            // We've always got access to the HTTP request response stuff inside controller.
+            Response.AddPaginationHeader(users.CurrentPage, users.PageSize, users.TotalCount, users.TotalPages);
 
             // We just have to wrap the result in an OK response to make it work.
             return Ok(users);
@@ -117,7 +138,7 @@ namespace API.Controllers
 
             // Save the changes to database and return the photo.
             // The response status code must 201 not 200.
-            if (await _userRepository.SaveAllAsync()) 
+            if (await _userRepository.SaveAllAsync())
             {
                 // Map photo to photoDto.
                 // Return 201.
@@ -125,7 +146,7 @@ namespace API.Controllers
                 // 'username' is name of route parameter and set it to equal user.UserName.
                 // Check the headers in Location ex. https://localhost:5001/api/Users/cara
                 // that tell the client where to go to get the image that we've uploaded, now, the image is going to be in a collection of photos for cara.
-                return CreatedAtRoute("GetUser", new {username = user.UserName}, _mapper.Map<Photo, PhotoDto>(photo));
+                return CreatedAtRoute("GetUser", new { username = user.UserName }, _mapper.Map<Photo, PhotoDto>(photo));
             }
 
             // If fail.
@@ -176,7 +197,7 @@ namespace API.Controllers
             var user = await _userRepository.GetUserByUsernameAsync(User.GetUserName());
 
             // Get the photo that we're interested in deleting.
-            var photo = user.Photos.FirstOrDefault(x => x.Id  == photoId);
+            var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
 
             // Check the photo is not null.
             if (photo == null) return NotFound();

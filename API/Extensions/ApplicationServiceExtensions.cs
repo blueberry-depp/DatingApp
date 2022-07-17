@@ -16,6 +16,8 @@ namespace API.Extensions
             // AddSingleton: when instantiated is created and then it doesn't stop until our application stops. 
             // AddScoped: when instantiated is created and then it stop when our http request are finished(suit for http request).
             services.AddScoped<IPhotoService, PhotoService>();
+            services.AddScoped<ILikesRepository, LikesRepository>();
+            services.AddScoped<LogUserActivity>();
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserRepository, UserRepository>();
 
