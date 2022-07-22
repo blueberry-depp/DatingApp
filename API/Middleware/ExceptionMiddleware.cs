@@ -28,7 +28,6 @@ namespace API.Middleware
             try
             {
                 // First thing we're going to do is get a context and to simply pass this on to the next piece of middleware.
-
                 await _next(context);
             }
             // This piece of middleware is going to live at the very top. Of our middleware and anything below this,
