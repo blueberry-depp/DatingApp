@@ -2,6 +2,7 @@
   <h2>{{predicate === 'liked' ? 'Members I like' : 'Members who like me'}}</h2>
 </div>
 
+
 <div class="container mt-3">
   <div class="d-flex">
     <!-- We're going to be using nGModel so we must give the name -->
@@ -11,6 +12,10 @@
     </div>
   </div>
 
+  <div class="row" *ngIf="members?.length === 0">
+    <h4>No members</h4>
+  </div>
+
   <div class="row mt-3">
     <div class="col-2" *ngFor="let member of members">
       <app-member-card [member]="$any(member)"></app-member-card>
@@ -18,7 +23,7 @@
   </div>
 </div>
 
-<div class="d-flex justify-content-center" *ngIf="pagination">
+<div class="d-flex justify-content-center" *ngIf="pagination && members!.length > 0">
   <!-- Use ngModel in here for two way binding so that we can receive the current page and we can also update the current page going the other way as well. -->
   <pagination
     [boundaryLinks]="true"

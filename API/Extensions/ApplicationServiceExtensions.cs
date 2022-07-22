@@ -15,10 +15,11 @@ namespace API.Extensions
             services.Configure<CloudinarySettings>(config.GetSection("CloudinarySettings"));
             // AddSingleton: when instantiated is created and then it doesn't stop until our application stops. 
             // AddScoped: when instantiated is created and then it stop when our http request are finished(suit for http request).
+            services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IPhotoService, PhotoService>();
             services.AddScoped<ILikesRepository, LikesRepository>();
+            services.AddScoped<IMessageRepository, MessageRepository>();
             services.AddScoped<LogUserActivity>();
-            services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IUserRepository, UserRepository>();
 
             // We only have a single project, so we only have a single assembly of where this can be created, so we use typeof(),

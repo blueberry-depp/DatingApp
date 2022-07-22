@@ -2,12 +2,12 @@ import { Injectable } from '@angular/core';
 import {environment} from "../../environments/environment";
 import {HttpClient, HttpHeaders, HttpParams} from "@angular/common/http";
 import {Member} from "../_models/member";
-import {of, pipe, take} from "rxjs";
+import {of, take} from "rxjs";
 import {map} from "rxjs/operators";
-import {PaginatedResult} from "../_models/pagination";
 import {UserParams} from "../_models/userParams";
 import {AccountService} from "./account.service";
 import {User} from "../_models/user";
+import {getPaginatedResult, getPaginationHeaders} from "./paginationHelper";
 
 // We no longer need to use the HTTP options because we use interceptor.
 // The advantage now is that we never need to add this on to any request ever again,
@@ -25,8 +25,6 @@ import {User} from "../_models/user";
 // so what we can do is use our service to store our data and the term is caching data in Angular services,
 // If we don't do caching data in services, we will make an API calls for every request when a more sensible way to go about
 // it would be to store the data in a service. And because services are singletons, then our data remains
-
-
 // and we can access that if we have it, rather than going out to the API every time.
 @Injectable({
   providedIn: 'root'
@@ -67,7 +65,7 @@ export class MembersService {
     return this.userParams
   }
 
-  // Use  this user params as some kind of key and then for each key, each query, we can store the response,
+  // Use this user params as some kind of key and then for each key, each query, we can store the response,
   getMembers(userParams: UserParams) {
     // console.log(Object.values(userParams).join('-'))
 
@@ -79,21 +77,19 @@ export class MembersService {
       return of(response)
     }
 
-    let params = this.getPaginationHeaders(userParams.pageNumber, userParams.pageSize)
-
+    let params = getPaginationHeaders(userParams.pageNumber, userParams.pageSize)
     params = params.append('minAge', userParams.minAge.toString())
     params = params.append('maxAge', userParams.maxAge.toString())
     params = params.append('gender',  userParams.gender)
     params = params.append('orderBy',  userParams.orderBy)
 
     // Because we're returning an observable, we must use pipe and map is rxjs, we use it to transform the data that we get back.
-    return this.getPaginatedResult<Member[]>(`${this.baseUrl}users`, params)
+    return getPaginatedResult<Member[]>(`${this.baseUrl}users`, params, this.http)
       .pipe(map(response => {
         // Object.values(userParams) is a key and the value is going to be the response we get back from our server.
         this.memberCache.set(Object.values(userParams).join('-'), response)
         return response
       }))
-
   }
 
   getMember(username: string) {
@@ -147,48 +143,11 @@ export class MembersService {
   // We only need three thing: predicate, page number, page size.
   // Note for future implementation: create a separate class.
   getLikes(predicate: string, pageNumber: number, pageSize: number) {
-    let params = this.getPaginationHeaders(pageNumber, pageSize)
+    let params = getPaginationHeaders(pageNumber, pageSize)
 
     params = params.append('predicate', predicate)
-    return this.getPaginatedResult<Partial<Member[]>>(`${this.baseUrl}likes`, params)
+    return getPaginatedResult<Partial<Member[]>>(`${this.baseUrl}likes`, params, this.http)
   }
 
-  // <T> is generic type parameter.
-  private getPaginatedResult<T>(url: any, params: any) {
-    // Also initialize it and store the results in.
-    const paginatedResult: PaginatedResult<T> = new PaginatedResult<T>()
 
-    // We need to return this as an observable because our client, our component is going to be observing this data.
-    // of: return something of an observable
-    // So if we have the members, then we gonna return the members from the service as an observable. This is work as the caching.
-    // if (this.members.length > 0) return of(this.members)
-    // pipe: Set the members once we've gone and made the effort to get them from the API.
-    // map operator: returns the values as an observable.
-    // observe: "response": when we're observing the response and we use params to pass the parameters,
-    // then we get the full response back. We must get it the full response back by ourselves.
-    return this.http.get<T>(url, {observe: "response", params}).pipe(
-      map(response => {
-        // Members[] is going to be contained inside response.body.
-        paginatedResult.result = response.body
-        // Check pagination headers.
-        if (response.headers.get('Pagination') !== null) {
-          paginatedResult.pagination = JSON.parse(<string>response.headers.get('Pagination'))
-        }
-
-        return paginatedResult
-      })
-    )
-  }
-
-  // To make life a bit easier we'll create a private method so that we can just go and get these pagination headers.
-  private getPaginationHeaders(pageNumber: number, pageSize: number) {
-    // This gives us the ability to serialize parameters and this is going to take care of adding this on to query string.
-    let params = new HttpParams()
-
-    // pageNumber is query string, because a query string is a string we need to convert to string.
-    params = params.append('pageNumber', pageNumber.toString())
-    params = params.append('pageSize', pageSize.toString())
-
-    return params
-  }
 }

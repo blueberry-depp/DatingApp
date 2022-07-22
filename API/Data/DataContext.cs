@@ -9,7 +9,8 @@ namespace API.Data
         {
         }
 
-        public DbSet<AppUser> Users { get; set; } // Users -> It's the database table 
+        // Users -> The database table name. 
+        public DbSet<AppUser> Users { get; set; }
 
         // We only want to add photos to an individual user's photo collection,
         // We're not going to be getting photos independently of the photo collection, as in we don't need to
@@ -18,6 +19,7 @@ namespace API.Data
         // So for all of those reasons, we don't necessarily need a DB set in here for the photo class.
 
         public DbSet<UserLike> Likes { get; set; }
+        public DbSet<Message> Messages { get; set; }
 
         // We need give the entities some configuration, and the way that we do
         // that is we need to override a method inside the DB context.
@@ -42,15 +44,30 @@ namespace API.Data
                 // Configure the on delete behavior to cascade, so if we delete a user, we delete the related entities.
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // The other side of this relationship.
+            // Configure the other side of this relationship.
             builder.Entity<UserLike>()
                // Specify the relationships, the liked user can have many liked by users.
                .HasOne(s => s.LikedUser)
                .WithMany(l => l.LikedByUsers)
                .HasForeignKey(s => s.LikedUserId)
-               .OnDelete(DeleteBehavior.Cascade);   
+               .OnDelete(DeleteBehavior.Cascade);
 
+            // We won't give it a made up key like we did with the likes, we gonna let the database generate this,
+            builder.Entity<Message>()
+               .HasOne(u => u.Recipient)
+               .WithMany(m => m.MessagesReceived)
+               // We don't want to remove the messages if the other party hasn't deleted them themselves.
+               .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<Message>()
+               .HasOne(u => u.Sender)
+               // Sender has many messages sent.
+               .WithMany(m => m.MessagesSent)
+               .OnDelete(DeleteBehavior.Restrict);
         }
+
+
+
 
     }
 }

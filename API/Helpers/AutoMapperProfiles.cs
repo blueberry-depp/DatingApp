@@ -17,15 +17,29 @@ namespace API.Helpers
                 // ForMember means which property that we want to affect,
                 // first parameter we pass is the destination, what property are we looking to affect,
                 // next part of this is the options, where do we want this to map from and the source of where we're mapping from.
-                .ForMember(dest => dest.PhotoUrl,
-                opt => opt.MapFrom(src => src.Photos.FirstOrDefault(x => x.IsMain).Url))
-                .ForMember(dest => dest.Age, 
-                opt => opt.MapFrom(src => src.DateOfBirth.CalculateAge()));
+                .ForMember(dest => dest.PhotoUrl, opt => opt.MapFrom(src =>
+                    src.Photos.FirstOrDefault(x => x.IsMain).Url))
+                .ForMember(dest => dest.Age, opt => opt.MapFrom(src =>
+                    src.DateOfBirth.CalculateAge()));
 
             CreateMap<Photo, PhotoDto>();
-
             // We're going to go the other way, from MemberUpdateDto to AppUser.
             CreateMap<MemberUpdateDto, AppUser>();
+            CreateMap<RegisterDto, AppUser>();
+
+            // because there's a couple of properties or one property that we cannot
+            // get automapper to do for us, and that's for the user photo.
+            CreateMap<Message, MessageDto>()
+               // This is for sender.
+               // src =>: where we're mapping from. 
+               .ForMember(dest => dest.SenderPhotoUrl, opt => opt.MapFrom(src =>
+                    src.Sender.Photos.FirstOrDefault(x => x.IsMain).Url))
+               // This is for recipient.
+               .ForMember(dest => dest.RecipientPhotoUrl, opt => opt.MapFrom(src =>
+                    src.Recipient.Photos.FirstOrDefault(x => x.IsMain).Url));
+            CreateMap<MessageDto, Message>();
+
+
 
         }
     }

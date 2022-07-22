@@ -11,7 +11,7 @@ import {Pagination} from "../_models/pagination";
 export class ListsComponent implements OnInit {
   // Not quite full members, so what we'll use we used it before when we were configuring the date picker,
   // but we're going to specify partial so each one of the properties inside the member is now going to be optional.
-  members!: Partial<Member[]> | null
+  members: Partial<Member[]> | null = []
   predicate = 'liked'
   pageNumber = 1
   pageSize = 5

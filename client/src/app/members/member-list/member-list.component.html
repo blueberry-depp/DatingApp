@@ -56,7 +56,7 @@
   </div>
 </div>
 
-<div class="d-flex justify-content-center" *ngIf="pagination">
+<div class="d-flex justify-content-center" *ngIf="pagination && members!.length > 0">
   <!-- Use ngModel in here for two way binding so that we can receive the current page and we can also update the current page going the other way as well. -->
   <pagination
     [boundaryLinks]="true"
