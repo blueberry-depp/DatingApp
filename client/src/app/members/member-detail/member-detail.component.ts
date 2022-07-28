@@ -16,7 +16,7 @@ export class MemberDetailComponent implements OnInit {
   // To get that memberTabs.
   // TabsetComponent is ngx-bootstrap component.
   // When component is constructed, then this ViewChild is undefined because it's not faster than ngInit, so we must use route resolvers,
-  // route resolvers allow us to get access to the data before the component is constructed, and that means that we can have everything
+  // route resolvers allow us to get access to the data before the component is constructed, and we can avoid needing to use conditionals check, and that means that we can have everything
   // we need when the component is constructed, and we're not going to see this tab undefined error.
   // static: is a dynamic version of ViewChild, it's able to react to changes in component,
   @ViewChild('memberTabs', {static: true}) memberTabs!: TabsetComponent

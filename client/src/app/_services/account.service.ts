@@ -4,6 +4,7 @@ import {map} from "rxjs/operators";
 import {User} from "../_models/user";
 import {ReplaySubject} from "rxjs";
 import {environment} from "../../environments/environment";
+import {tokenize} from "ngx-bootstrap/typeahead";
 
 // Note: Services are injectable,
 // Services are singleton,
@@ -47,6 +48,11 @@ export class AccountService {
 
   // Set the current user.
   setCurrentUser(user: User) {
+    user.roles = []
+    const roles = this.getDecodedToken(user.token).role
+    // Check to see if the roles that we have here been an array or just a simple string. If not we push the role into an array.
+    Array.isArray(roles) ? user.roles = roles : user.roles.push(roles)
+
     localStorage.setItem('user', JSON.stringify(user))
     // Set the user.
     this.currentUserSource.next(user)
@@ -56,7 +62,12 @@ export class AccountService {
     localStorage.removeItem('user')
     // @ts-ignore
     this.currentUserSource.next(null)
+  }
 
-
+  // Get the information inside the token.
+  getDecodedToken(token: string) {
+    // Token come in three part, we have  header, we have payload, and then the signature,
+    // the part that we're interested is the payload([1] is index).
+    return JSON.parse(atob(token.split('.')[1]))
   }
 }

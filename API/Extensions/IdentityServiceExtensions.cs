@@ -1,5 +1,8 @@
-﻿using API.Services;
+﻿using API.Data;
+using API.Entities;
+using API.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
@@ -9,8 +12,21 @@ namespace API.Extensions
     public static class IdentityServiceExtensions
     {
         // To use or extend the IServiceCollection that we're going to be returning, we need to use 'this' keyword
-        public static IServiceCollection AddIdentityServices(this IServiceCollection services, IConfiguration config) 
+        public static IServiceCollection AddIdentityServices(this IServiceCollection services, IConfiguration config)
         {
+            // AddIdentityCore is for SPA application.
+            // opt is option.
+            services.AddIdentityCore<AppUser>(opt =>
+            {
+                opt.Password.RequireNonAlphanumeric = false;
+            })
+                .AddRoles<AppRole>()
+                .AddRoleManager<RoleManager<AppRole>>()
+                .AddSignInManager<SignInManager<AppUser>>()
+                .AddRoleValidator<RoleValidator<AppRole>>()
+                // DataContext for it sets up our database with all of the tables we need, to create the .net identity tables.
+                .AddEntityFrameworkStores<DataContext>();
+
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 .AddJwtBearer(options =>
                 {
@@ -22,6 +38,12 @@ namespace API.Extensions
                         ValidateAudience = false, // our angular application
                     };
                 });
+
+            services.AddAuthorization(opt =>
+            {
+                opt.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+                opt.AddPolicy("ModeratePhotoRole", policy => policy.RequireRole("Admin", "Moderator"));
+            });
 
             return services;
         }

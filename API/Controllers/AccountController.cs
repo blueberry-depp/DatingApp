@@ -2,6 +2,8 @@
 using API.DTOs;
 using API.Entities;
 using API.Interfaces;
+using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
@@ -11,82 +13,89 @@ namespace API.Controllers
 {
     public class AccountController : BaseApiController
     {
-        private readonly DataContext _context;
+        private readonly UserManager<AppUser> _userManager;
+        private readonly SignInManager<AppUser> _signInManager;
         private readonly ITokenService _tokenService;
+        private readonly IMapper _mapper;
 
-        public AccountController(DataContext context, ITokenService tokenService) // Inject the token service too
+        // Inject the token service too.
+        public AccountController(UserManager<AppUser> userManager, SignInManager<AppUser> signInManager, ITokenService tokenService, IMapper mapper) 
         {
-            _context = context;
+            _userManager = userManager;
+            _signInManager = signInManager;
             _tokenService = tokenService;
+            _mapper = mapper;
         }
 
+
         [HttpPost("register")]
-        // ActionResult<AppUser>: we returning AppUser
+        // ActionResult<AppUser>: we returning AppUser.
         // "using": when we finished with this particular class, then it's going to be disposed of correctly   
-        // string username, string password: The Api Controller doesn't know where these values are coming from, the value can come with query string or the body of the request, we are leaving it up to the [ApiController] to figure this out for us
-        // The body of request need the object form
-        // When we use ActionResult, we're able to return different HTTP status codes
-        // We returning UserDto
+        // string username, string password: The Api Controller doesn't know where these values are coming from,
+        // the value can come with query string or the body of the request, we are leaving it up to the [ApiController] to figure this out for us
+        // The body of request need the object form.
+        // When we use ActionResult, we're able to return different HTTP status codes.
+        // We returning UserDto.
         public async Task<ActionResult<UserDto>> Register(RegisterDto registerDto) 
         {
             if (await UserExist(registerDto.Username)) return BadRequest("Username is taken");
 
-            using var hmac = new HMACSHA512();
+            // Map from a registerDto into AppUser.
+            var user = _mapper.Map<AppUser>(registerDto);
 
-            // Create new user
-            var user = new AppUser
-            {
-                UserName = registerDto.Username.ToLower(),
-                PasswordHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(registerDto.Password)),
-                PasswordSalt = hmac.Key
-            };
+            // Make the username a lowercase username.
+            user.UserName = registerDto.Username.ToLower();
 
-            _context.Users.Add(user); // Tracking this now in Entity Framework
-            await _context.SaveChangesAsync(); // Save user to the database
+            // This both create a user and saves the changes into the database.
+            var result = await _userManager.CreateAsync(user, registerDto.Password);
+
+            // Check to see if result has succeeded.    
+            if (!result.Succeeded) return BadRequest(result.Errors);
+
+            // Add the user into the member role. We're going to put any newly registered user into the member role.
+            var roleResult = await _userManager.AddToRoleAsync(user, "Member");
+
+            if (!roleResult.Succeeded) return BadRequest(result.Errors);
+
 
             return new UserDto
             {
                 Username = user.UserName,
-                Token = _tokenService.CreateToken(user),
+                Token = await _tokenService.CreateToken(user),
                 KnownAs = user.KnownAs,
                 Gender = user.Gender
             };
         }
 
+
         [HttpPost("login")]
         public async Task<ActionResult<UserDto>> Login(LoginDto loginDto)
         {
             // Get the user from database
-            var user = await _context.Users
-                .Include(p => p.Photos) // Eagerly loading the photo too.
+            var user = await _userManager.Users
+                // Eagerly loading the photo too.
+                .Include(p => p.Photos) 
+                // Get the user.
                 .SingleOrDefaultAsync(x => x.UserName == loginDto.Username.ToLower());
 
             if (user == null) return Unauthorized("Invalid username");
 
-            using var hmac = new HMACSHA512(user.PasswordSalt);
+            var result = await _signInManager.CheckPasswordSignInAsync(user, loginDto.Password, false);
 
-            var computedHash = hmac.ComputeHash(Encoding.UTF8.GetBytes(loginDto.Password));
-
-            // Because this is a byte array, we need to loop over each element in this array.
-            for (int i = 0; i < computedHash.Length; i++)
-            {
-                if (computedHash[i] != user.PasswordHash[i]) return Unauthorized("Invalid password");
-
-            }
+            // Check to see if result has succeeded.    
+            if (!result.Succeeded) return Unauthorized();
 
             return new UserDto
             {
                 Username = user.UserName,
-                Token = _tokenService.CreateToken(user),
+                Token = await _tokenService.CreateToken(user),
                 // Even though that they have registered, it doesn't mean they've got a photo, the url maybe null, so we gave it optional property.
                 // and this source is no longer going to be empty if the user doesn't have a photo, that will not cause an exception here
                 // because it's simply going to return null, but if it doesn't have any photos to work with, that's when we see the exception.
                 PhotoUrl = user.Photos.FirstOrDefault(x => x.IsMain)?.Url,
                 KnownAs = user.KnownAs,
                 Gender = user.Gender
-
             };
-
         }
 
 
@@ -94,7 +103,7 @@ namespace API.Controllers
         // Check the username already in database
         private async Task<bool> UserExist(string username)
         {
-            return await _context.Users.AnyAsync(x => x.UserName == username.ToLower());
+            return await _userManager.Users.AnyAsync(x => x.UserName == username.ToLower());
         }
     }
 }

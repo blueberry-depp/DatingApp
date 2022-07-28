@@ -1,16 +1,22 @@
 ﻿using API.Entities;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace API.Data
 {
-    public class DataContext : DbContext
+    // <AppUser, AppRole, int>: Because we want to access to user roles, we need to provide type parameters for this.
+    // Because we want to get a list of the user roles, then we need to go a bit further and we need to identify every single type,
+    // that we need to add to identity. If we specify AppUserRole then we need to identify all of the different types and
+    // give us an opportunity to ensure they're using integers
+    public class DataContext : IdentityDbContext<AppUser, AppRole, int, IdentityUserClaim<int>, AppUserRole, 
+        IdentityUserLogin<int>, IdentityRoleClaim<int>, IdentityUserToken<int>>
     {
         public DataContext(DbContextOptions options) : base(options)
         {
         }
 
-        // Users -> The database table name. 
-        public DbSet<AppUser> Users { get; set; }
+        // Users -> We don't need Users DbSet because IdentityDbContext provide it. 
 
         // We only want to add photos to an individual user's photo collection,
         // We're not going to be getting photos independently of the photo collection, as in we don't need to
@@ -28,6 +34,18 @@ namespace API.Data
             // because we're overriding this method, we'll just pass into the class we're deriving from and we get access to that using base,
             // if we don't do this, we can sometimes get errors when we try and add migration.
             base.OnModelCreating(builder);
+
+            builder.Entity<AppUser>()
+                .HasMany(ur => ur.UserRoles)
+                .WithOne(u => u.User)
+                .HasForeignKey(ur => ur.UserId)
+                .IsRequired();
+
+            builder.Entity<AppRole>()
+                .HasMany(ur => ur.UserRoles)
+                .WithOne(u => u.Role)
+                .HasForeignKey(ur => ur.RoleId)
+                .IsRequired();
 
             // Work on UserLike entity.
             builder.Entity<UserLike>()

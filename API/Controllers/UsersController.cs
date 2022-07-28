@@ -27,7 +27,7 @@ namespace API.Controllers
             _photoService = photoService;
         }
 
-
+        //[Authorize(Roles = "Admin")]
         [HttpGet]
         // IEnumerable is just use simple iteration over a colection a specified type, not have the method,
         // otherwise in List, we can use many method associated with List.
@@ -58,7 +58,7 @@ namespace API.Controllers
             return users;
         }
 
-
+        //[Authorize(Roles = "Member")]
         // Give the root the name 'Name = "GetUser"'.
         [HttpGet("{username}", Name = "GetUser")]
         public async Task<ActionResult<MemberDto>> GetUser(string username)
