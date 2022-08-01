@@ -26,6 +26,9 @@ namespace API.Data
 
         public DbSet<UserLike> Likes { get; set; }
         public DbSet<Message> Messages { get; set; }
+        // In order to access to different entities, we're going to need to update data context.
+        public DbSet<Group> Groups { get; set; }
+        public DbSet<Connection> Connections { get; set; }
 
         // We need give the entities some configuration, and the way that we do
         // that is we need to override a method inside the DB context.

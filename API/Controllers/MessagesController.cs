@@ -28,7 +28,7 @@ namespace API.Controllers
         // Return MessageDto to the user.
         public async Task<ActionResult<MessageDto>> CreateMessage(CreateMessageDto createMessageDto)
         {
-            var username = User.GetUserName();
+            var username = User.GetUsername();
 
             // Check to see if our user name is equal to the recipient name in the CreateMessageDto.
             if (username == createMessageDto.RecipientUsername.ToLower())
@@ -72,7 +72,7 @@ namespace API.Controllers
         // Create unread messages inbox and outbox messaging system.
         public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessagesForUser([FromQuery] MessageParams messageParams)
         {
-            messageParams.Username = User.GetUserName();
+            messageParams.Username = User.GetUsername();
             var messages = await _messageRepository.GetMessagesForUser(messageParams);
 
             // Add pagination header.
@@ -90,7 +90,7 @@ namespace API.Controllers
         public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessageThread(string username)
         {
             // Get current username.
-            var currentUsername = User.GetUserName();
+            var currentUsername = User.GetUsername();
 
             return Ok(await _messageRepository.GetMessageThread(currentUsername, username));
         }
@@ -100,7 +100,7 @@ namespace API.Controllers
         [HttpDelete("{id}")]
         public async Task<ActionResult> DeleteMessage(int id)
         {
-            var username = User.GetUserName();
+            var username = User.GetUsername();
 
             // The message must include the sender and recipient.
             var message = await _messageRepository.GetMessage(id);

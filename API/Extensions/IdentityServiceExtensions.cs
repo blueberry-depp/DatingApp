@@ -37,6 +37,32 @@ namespace API.Extensions
                         ValidateIssuer = false, // obviously our API server
                         ValidateAudience = false, // our angular application
                     };
+
+                    // Vecause signalR or WebSocket cannot send an authentication header,
+                    // for signalR we can always use a query string, whereas for our API controllers, it's just
+                    // going to use the authentication header as we've been using so far.
+                    options.Events = new JwtBearerEvents
+                    {
+                        OnMessageReceived = context =>
+                        {
+                            // access_token: this needs to be specific because signalR by default will send up token as a query string.
+                            // This allows our client to send up the token as a query string,
+                            var accessToken = context.Request.Query["access_token"];
+
+                            // Check the path of this request, where's it coming to, because we only want to do this for signalR,
+                            var path = context.HttpContext.Request.Path;
+                            // See if we actually have an access token and see if we've got our JWT token and check that the path to match what we
+                            // used inside startup class.
+                            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                            {
+                                context.Token = accessToken;
+                            }
+
+                            return Task.CompletedTask;
+                        }
+
+                    };
+
                 });
 
             services.AddAuthorization(opt =>

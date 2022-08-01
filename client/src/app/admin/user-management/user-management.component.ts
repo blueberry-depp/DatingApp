@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import {Component, OnInit} from '@angular/core';
 import {User} from "../../_models/user";
 import {AdminService} from "../../_services/admin.service";
 import {BsModalRef, BsModalService} from "ngx-bootstrap/modal";
@@ -17,7 +17,8 @@ export class UserManagementComponent implements OnInit {
   constructor(
     private adminService: AdminService,
     private modalService: BsModalService
-  ) { }
+  ) {
+  }
 
   ngOnInit(): void {
     this.getUsersWithRoles()
@@ -41,8 +42,7 @@ export class UserManagementComponent implements OnInit {
     }
 
     this.bsModalRef = this.modalService.show(RolesModalComponent, config);
-    // @ts-ignore
-    this.bsModalRef.content.updateSelectedRoles.subscribe(values => {
+    this.bsModalRef.content.updateSelectedRoles.subscribe((values: any[]) => {
       const roleToUpdate = {
         // Set this to all the values that have been checked, that we get back from our modal. Everything
         // that's been checked is going to values.
@@ -63,9 +63,9 @@ export class UserManagementComponent implements OnInit {
     const roles: string[] = []
     const userRoles = user.roles
     const availableRoles: any[] = [
-      {name: 'Admin' , value: 'Admin'},
-      {name: 'Moderator' , value: 'Moderator'},
-      {name: 'Member' , value: 'Member'},
+      {name: 'Admin', value: 'Admin'},
+      {name: 'Moderator', value: 'Moderator'},
+      {name: 'Member', value: 'Member'},
     ]
 
     // Loop over availableRoles and find out if user is a member of those available roles,

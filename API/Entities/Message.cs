@@ -13,8 +13,8 @@
         public string Content { get; set; }
         // Make this optional because we want this to be null if the message has not been read.
         public DateTime? DateRead { get; set; }
-        // As soon as we create a new instance of this, then we set the time to the current server timestamp.
-        public DateTime MessageSent { get; set; } = DateTime.Now;
+        // As soon as we create a new instance of this, then we set the utc time to the current server timestamp.
+        public DateTime MessageSent { get; set; } = DateTime.UtcNow;
         // If a user decides to delete a message that they have sent, then we're not
         // going to delete it from the recipient's view of the messages. The only time we delete a message from the server,
         // if both the sender and the recipient have both deleted the message.

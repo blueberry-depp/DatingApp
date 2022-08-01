@@ -44,7 +44,7 @@ namespace API.Data
         {
             var query = _context.Messages
                 // Order them by most recent.
-                .OrderByDescending(m => m.MessageSent)   
+                .OrderByDescending(m => m.MessageSent)
                 .AsQueryable();
 
             // Check the container. And depending on which container it is, will depend on which messages we return.
@@ -58,7 +58,7 @@ namespace API.Data
                 // u.DateRead == null: which will mean that they have not read the message yet.
                 _ => query.Where(u => u.Recipient.UserName == messageParams.Username && u.RecipientDeleted == false && u.DateRead == null)
             };
-                
+
             // Project in here, so must bring the IMapper here.
             var messages = query.ProjectTo<MessageDto>(_mapper.ConfigurationProvider);
 
@@ -81,11 +81,11 @@ namespace API.Data
                 // We want to display the user's photo in the message design as well.
                 .Include(u => u.Recipient).ThenInclude(p => p.Photos)
                 .Where(m => m.Recipient.UserName == currentUsername && m.RecipientDeleted == false
-                    && m.Sender.UserName == recipientUsername 
+                    && m.Sender.UserName == recipientUsername
                     // Go the other way.
                     || m.Recipient.UserName == recipientUsername && m.SenderDeleted == false
-                    && m.Sender.UserName == currentUsername 
-                ) 
+                    && m.Sender.UserName == currentUsername
+                )
                 .OrderBy(m => m.MessageSent)
                 // We use ToListAsync, we're not going to project out of this, because
                 // we're going to take the opportunity to mark the messages as read when a user gets the message thread
@@ -105,7 +105,7 @@ namespace API.Data
             {
                 foreach (var message in unreadMessages)
                 {
-                    message.DateRead = DateTime.Now;
+                    message.DateRead = DateTime.UtcNow;
                 }
 
                 // Save these changes to the database.
@@ -119,6 +119,41 @@ namespace API.Data
         public async Task<bool> SaveAllAsync()
         {
             return await _context.SaveChangesAsync() > 0;
+        }
+
+        public void AddGroup(Group group)
+        {
+            _context.Groups.Add(group);
+
+        }
+
+        public async Task<Connection> GetConnection(string connectionId)
+        {
+            return await _context.Connections.FindAsync(connectionId);
+
+        }
+
+        public async Task<Group> GetMessageGroup(string groupName)
+        {
+            return await _context.Groups
+               .Include(x => x.Connections)
+               .FirstOrDefaultAsync(x => x.Name == groupName);
+        }
+
+        public void RemoveConnection(Connection connection)
+        {
+            _context.Connections.Remove(connection);
+
+        }
+
+        // This is return a group for that specific connection id.
+        public async Task<Group> GetGroupForConnection(string connectionId)
+        {
+            return await _context.Groups
+                // This is all related entity.
+                .Include(c => c.Connections)
+                .Where(c => c.Connections.Any(x => x.ConnectionId == connectionId))
+                .FirstOrDefaultAsync();
         }
     }
 }

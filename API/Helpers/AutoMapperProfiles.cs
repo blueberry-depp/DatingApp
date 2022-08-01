@@ -37,7 +37,9 @@ namespace API.Helpers
                // This is for recipient.
                .ForMember(dest => dest.RecipientPhotoUrl, opt => opt.MapFrom(src =>
                     src.Recipient.Photos.FirstOrDefault(x => x.IsMain).Url));
-            CreateMap<MessageDto, Message>();
+            //CreateMap<MessageDto, Message>();
+            // When we return our dates to the client. We're going to have that Z on the end of it.
+            CreateMap<DateTime, DateTime>().ConvertUsing(d => DateTime.SpecifyKind(d, DateTimeKind.Utc));
 
 
 

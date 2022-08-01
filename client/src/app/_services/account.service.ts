@@ -1,10 +1,10 @@
 import {Injectable} from '@angular/core';
-import {HttpClient, HttpHeaders} from "@angular/common/http";
+import {HttpClient} from "@angular/common/http";
 import {map} from "rxjs/operators";
 import {User} from "../_models/user";
 import {ReplaySubject} from "rxjs";
 import {environment} from "../../environments/environment";
-import {tokenize} from "ngx-bootstrap/typeahead";
+import {PresenceService} from "./presence.service";
 
 // Note: Services are injectable,
 // Services are singleton,
@@ -23,7 +23,9 @@ export class AccountService {
   currentUser$ = this.currentUserSource.asObservable()
 
   constructor(
-    private http: HttpClient
+    private http: HttpClient,
+    private presence: PresenceService
+
   ) {
   }
 
@@ -33,6 +35,8 @@ export class AccountService {
         const user = response
         if (user) {
           this.setCurrentUser(user)
+          // When we log in, we're going to set the hub connection.
+          this.presence.createHubConnection(user)
         }
       }))
   }
@@ -42,6 +46,8 @@ export class AccountService {
       map((user: any) => {
         if (user) {
           this.setCurrentUser(user)
+          // When we register, we're going to set the hub connection.
+          this.presence.createHubConnection(user)
         }
       }))
   }
@@ -62,6 +68,11 @@ export class AccountService {
     localStorage.removeItem('user')
     // @ts-ignore
     this.currentUserSource.next(null)
+    // When user closes the browser, moves to another website or anything else, then signalR automatically disconnects that client,
+    // so the only time that we need to control this ourselves is when a user logs out, and they
+    // go back to the home page, we're going to make sure that we stop the hub connection.
+    this.presence.stopHubConnection()
+
   }
 
   // Get the information inside the token.

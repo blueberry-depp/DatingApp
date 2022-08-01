@@ -17,18 +17,18 @@ export class MemberMessagesComponent implements OnInit {
   @Input() messages: Message[] = []
   messageContent!: string
 
-
-  constructor(private messageService: MessageService) {
+  // We'll use the async pipe to subscribe to the messages.
+  // Make this public, so we can access it from components template.
+  constructor(public messageService: MessageService) {
   }
 
   ngOnInit(): void {
   }
 
   sendMessage() {
-    // We get message back from subscribe.
-    this.messageService.sendMessage(this.username, this.messageContent).subscribe(message => {
-      // We push the new message that we've created inside here so that we can see it in the array of messages
-      this.messages.push(message)
+    // We're not going to push the message anymore either. We can simply be receiving this from signalR hub.
+    // We use then when we're using promises.
+    this.messageService.sendMessage(this.username, this.messageContent).then(() => {
       this.messageForm.reset()
     })
   }

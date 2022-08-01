@@ -4,7 +4,7 @@ namespace API.Extensions
 {
     public static class ClaimsPrincipleExtensions
     {
-        public static string GetUserName(this ClaimsPrincipal user)
+        public static string GetUsername(this ClaimsPrincipal user)
         {
             // This give us the user's unique name from the token that the API uses
             // to authenticate this user, so that's the user we're going to be updating in this case.

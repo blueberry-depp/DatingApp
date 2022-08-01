@@ -40,7 +40,7 @@ namespace API.Controllers
         public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers([FromQuery] UserParams userParams)
         {
             // We need to get the current user in order to get access to the gender.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
             userParams.CurrentUsername = user.UserName;
 
             if (string.IsNullOrEmpty(userParams.Gender))
@@ -85,7 +85,7 @@ namespace API.Controllers
             // this contains information about their identity.
             // And what we want to do inside here is find the claim that matches the name identifier, which is the
             // claim that we give the user in that token.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
 
             // This saves us manually mapping between our update dto and our user objects, ex: user.City = memberUpdateDto.City.
             _mapper.Map(memberUpdateDto, user);
@@ -110,7 +110,7 @@ namespace API.Controllers
             // We get the user and have user object,
             // don't forget, when we do this GetUserByUsernameAsync method, this includes our photos we're eagerly loading them in
             // this method and we need to for this.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
 
             var result = await _photoService.AddPhotoAsync(file);
 
@@ -161,7 +161,7 @@ namespace API.Controllers
             // Get the username from the token, this means we're validating that this is the user that they say they are. We can
             // trust the information inside the token. There's no trickery going on there because our servers signed the token
             // so they're authenticating to this method.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
 
             // Also remember that GetUserByUsernameAsync method that we get from our repository has an eager loading property for the user's photos collection, 
             // so we do have access to the photos inside here.
@@ -194,7 +194,7 @@ namespace API.Controllers
         public async Task<ActionResult> DeletePhoto(int photoId)
         {
             // Get the user object.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUserName());
+            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
 
             // Get the photo that we're interested in deleting.
             var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
