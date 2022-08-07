@@ -25,13 +25,13 @@ namespace API.Data
         {
             return await _context.Photos
                 .IgnoreQueryFilters()
-                .Where(p => p.isApproved == false)
+                .Where(p => p.IsApproved == false)
                 .Select(u => new PhotoForApprovalDto
                 {
                     Id = u.Id,
                     Username = u.AppUser.UserName,
                     Url = u.Url,
-                    isApproved = u.isApproved
+                    isApproved = u.IsApproved
                 }).ToListAsync();
         }
 

@@ -95,7 +95,7 @@ namespace API.Controllers
 
             if (photo == null) return NotFound("Could not find photo");
 
-            photo.isApproved = true;    
+            photo.IsApproved = true;    
 
             var user = await _unitOfWork.UserRepository.GetUserByPhotoId(photoId);
 

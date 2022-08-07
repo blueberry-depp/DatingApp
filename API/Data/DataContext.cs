@@ -91,7 +91,7 @@ namespace API.Data
                .OnDelete(DeleteBehavior.Restrict);
 
             // Add a Query filter to only return approved photos.
-            builder.Entity<Photo>().HasQueryFilter(p => p.isApproved);
+            builder.Entity<Photo>().HasQueryFilter(p => p.IsApproved);
 
             // This to come after all of our entity configuration.
             builder.ApplyUtcDateTimeConverter();
