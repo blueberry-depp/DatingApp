@@ -47,6 +47,7 @@ namespace API.Data
             foreach (var user in users)
             {
                 user.UserName = user.UserName.ToLower();
+                user.Photos.First().isApproved = true;
 
                 // We're not checking the results, because this is just seed method. We're only run once
                 // and only the database is clean.

@@ -45,6 +45,8 @@ namespace API.Data
             var query = _context.Messages
                 // Order them by most recent.
                 .OrderByDescending(m => m.MessageSent)
+                // We projected this query to dto, then it would not need to select so much from the database when it makes these web queries.
+                .ProjectTo<MessageDto>(_mapper.ConfigurationProvider)
                 .AsQueryable();
 
             // Check the container. And depending on which container it is, will depend on which messages we return.
@@ -53,16 +55,13 @@ namespace API.Data
                 // u.RecipientDeleted == false: add extra check to see if a user who's sent a message deletes that message
                 // sent, then we don't want to send that back. So their see it in their outbox. So we're only
                 // returning messages that the recipient has not deleted or returning messages that have not been deleted.
-                "Inbox" => query.Where(u => u.Recipient.UserName == messageParams.Username && u.RecipientDeleted == false),
-                "Outbox" => query.Where(u => u.Sender.UserName == messageParams.Username && u.SenderDeleted == false),
+                "Inbox" => query.Where(u => u.RecipientUsername == messageParams.Username && u.RecipientDeleted == false),
+                "Outbox" => query.Where(u => u.SenderUsername == messageParams.Username && u.SenderDeleted == false),
                 // u.DateRead == null: which will mean that they have not read the message yet.
-                _ => query.Where(u => u.Recipient.UserName == messageParams.Username && u.RecipientDeleted == false && u.DateRead == null)
+                _ => query.Where(u => u.RecipientUsername == messageParams.Username && u.RecipientDeleted == false && u.DateRead == null)
             };
 
-            // Project in here, so must bring the IMapper here.
-            var messages = query.ProjectTo<MessageDto>(_mapper.ConfigurationProvider);
-
-            return await PagedList<MessageDto>.CreateAsync(messages, messageParams.PageNumber, messageParams.PageSize);
+            return await PagedList<MessageDto>.CreateAsync(query, messageParams.PageNumber, messageParams.PageSize);
         }
 
         // We're going to get the messages for both sides of the conversation, and
@@ -75,11 +74,6 @@ namespace API.Data
         {
             // Get the message conversation between two users.
             var messages = await _context.Messages
-                // Eagerly loading.
-                // .ThenInclude(p => p.Photos): this is going to give us access to our user photos.
-                .Include(u => u.Sender).ThenInclude(p => p.Photos)
-                // We want to display the user's photo in the message design as well.
-                .Include(u => u.Recipient).ThenInclude(p => p.Photos)
                 .Where(m => m.Recipient.UserName == currentUsername && m.RecipientDeleted == false
                     && m.Sender.UserName == recipientUsername
                     // Go the other way.
@@ -87,18 +81,18 @@ namespace API.Data
                     && m.Sender.UserName == currentUsername
                 )
                 .OrderBy(m => m.MessageSent)
-                // We use ToListAsync, we're not going to project out of this, because
+                // Projected into MessageDto and now we're working with MessageDto.
+                .ProjectTo<MessageDto>(_mapper.ConfigurationProvider)
+                // We make it as a list,  
                 // we're going to take the opportunity to mark the messages as read when a user gets the message thread
                 // and then any messages that have been sent will mark them as read during this process as well,
-                // so because we're not projecting, what we do need to do is eagerly load the photos for the user because
-                // we're going to include those as well.
                 .ToListAsync();
 
             // We then find out if there's any unread messages for the current user that they received.
             // Check unread messages and get a list because we're going to need to loop over.
             // Check any unread messages while the recipient is the current username, we'll gonna mark them as read.
             var unreadMessages = messages.Where(m => m.DateRead == null
-                && m.Recipient.UserName == currentUsername).ToList();
+                && m.RecipientUsername == currentUsername).ToList();
 
             // Then we mark them as read.
             if (unreadMessages.Any())
@@ -107,18 +101,10 @@ namespace API.Data
                 {
                     message.DateRead = DateTime.UtcNow;
                 }
-
-                // Save these changes to the database.
-                await _context.SaveChangesAsync();
             }
 
-            // Return message dto as a list.
-            return _mapper.Map<IEnumerable<MessageDto>>(messages);
-        }
-
-        public async Task<bool> SaveAllAsync()
-        {
-            return await _context.SaveChangesAsync() > 0;
+            // We don't need to map anymore. Just return the messages because we're already project to MessageDto.
+            return messages;
         }
 
         public void AddGroup(Group group)

@@ -22,11 +22,10 @@ namespace API.Data
             _mapper = mapper;
         }
 
-        public async Task<MemberDto> GetMemberAsync(string username)
+        public async Task<MemberDto> GetMemberAsync(string username, bool isCurrentUser)
         {
             // Queries the database.
-            // SingleOrDefaultAsync: execute the request.
-            return await _context.Users
+            var query = _context.Users
                 .Where(x => x.UserName == username)
                 // This is using AutoMapper queryable extensions
                 // This is for selecting the properties that we want directly from the database.
@@ -36,8 +35,14 @@ namespace API.Data
                 // work out the correct query to join the table and get what we need from the database,
                 // so this can be more efficient way of doing things.
                 .ProjectTo<MemberDto>(_mapper.ConfigurationProvider)
-               .SingleOrDefaultAsync();
+                .AsQueryable();
+
+            // Ignore Query filter for the current user.
+            if (isCurrentUser) query = query.IgnoreQueryFilters();
+
+            return await query.FirstOrDefaultAsync();
         }
+
 
         // Because this is something that we're only ever going to read from. We're not going to do anything with these entities.
         // Get the PagedList. 
@@ -85,11 +90,29 @@ namespace API.Data
             return await _context.Users.FindAsync(id); 
         }
 
+        public async Task<AppUser> GetUserByPhotoId(int photoId)
+        {
+            return await _context.Users
+                .Include(p => p.Photos)
+                .IgnoreQueryFilters()
+                .Where(p => p.Photos.Any(p => p.Id == photoId))
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<AppUser> GetUserByUsernameAsync(string username)
         {
             return await _context.Users
                 .Include(p => p.Photos)
                 .SingleOrDefaultAsync(x => x.UserName == username);
+        }
+
+        // Get the user's gender.
+        public async Task<string> GetUserGender(string username)
+        {
+            // This gives us single property from the database.
+            return await _context.Users
+                .Where(x => x.UserName == username)
+                .Select(x => x.Gender).FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<AppUser>> GetUsersAsync()
@@ -100,14 +123,6 @@ namespace API.Data
                 .ToListAsync();
         }
 
-        // Returning a boolean to say that if our changes have been saved.
-        public async Task<bool> SaveAllAsync()
-        {
-            // Because we want to return a boolean from this, we want to make sure that greater than 0 changes have been saved into our database,
-            // if something has changed, something has been saved, then it's going to return a value greater than 0
-            // because the SaveChangesAsync returns an integer from this particular method for a number of changes that have been saved in a database.
-            return await _context.SaveChangesAsync() > 0;
-        }
 
         // We're not actually changing anything in the database, we are going to do is mark this entity as it has been modified.
         public void Update(AppUser user)

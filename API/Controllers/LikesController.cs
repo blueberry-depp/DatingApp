@@ -12,13 +12,11 @@ namespace API.Controllers
     [Authorize]
     public class LikesController : BaseApiController
     {
-        private readonly IUserRepository _userRepository;
-        private readonly ILikesRepository _likesRepository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public LikesController(IUserRepository userRepository, ILikesRepository likesRepository)
+        public LikesController(IUnitOfWork unitOfWork)
         {
-            _userRepository = userRepository;
-            _likesRepository = likesRepository;
+            _unitOfWork = unitOfWork;
         }
 
         // Give the users a method to like another user.
@@ -32,9 +30,9 @@ namespace API.Controllers
             var sourceUserId = User.GetUserId();
 
             // Get hold of the user that we're liking.
-            var likedUser = await _userRepository.GetUserByUsernameAsync(username);
+            var likedUser = await _unitOfWork.UserRepository.GetUserByUsernameAsync(username);
             // Get hold of the source user.
-            var sourceUser = await _likesRepository.GetUserWithLikes(sourceUserId);
+            var sourceUser = await _unitOfWork.LikesRepository.GetUserWithLikes(sourceUserId);
 
             // NotFound(): we didn't find the user that they wanted to like.
             if (likedUser == null) return NotFound();
@@ -43,7 +41,7 @@ namespace API.Controllers
             if (sourceUser.UserName == username) return BadRequest("You cannot like yourself");
 
             // Double check to see if we already like this user, configured and added to the database.
-            var userLike = await _likesRepository.GetUserLike(sourceUserId, likedUser.Id);
+            var userLike = await _unitOfWork.LikesRepository.GetUserLike(sourceUserId, likedUser.Id);
             // Note for future implementation: we can use toggle to add/remove the like.
             if (userLike != null) return BadRequest("You already like this user");
 
@@ -54,11 +52,11 @@ namespace API.Controllers
                 SourceUserId = sourceUserId,
                 LikedUserId = likedUser.Id,
             };
-
+                
             // Add the user like and we'll do this to the source user.
             sourceUser.LikedUsers.Add(userLike);
 
-            if (await _userRepository.SaveAllAsync()) return Ok();
+            if (await _unitOfWork.Complete()) return Ok();
 
             return BadRequest("Failed to like user");
         }
@@ -77,7 +75,7 @@ namespace API.Controllers
             
 
             // The ActionResult doesn't work so well with an interface like IEnumerable so we use return OK.
-            var users = await _likesRepository.GetUserLikes(likeParams);
+            var users = await _unitOfWork.LikesRepository.GetUserLikes(likeParams);
 
             // Because we're going to get a paginated response back from PagedList, we're going to have access
             // to the current page, total pages, etc, information inside the users.

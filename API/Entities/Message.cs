@@ -4,13 +4,13 @@
     {
         public int Id { get; set; }
         public int SenderId { get; set; }
-        public string SenderUsername { get; set; }
+        public string? SenderUsername { get; set; }
         // Define relationships between AppUser and Message.
-        public AppUser Sender { get; set; }
+        public AppUser? Sender { get; set; }
         public int RecipientId { get; set; }
-        public string RecipientUsername { get; set; }
-        public AppUser Recipient { get; set; }
-        public string Content { get; set; }
+        public string? RecipientUsername { get; set; }
+        public AppUser? Recipient { get; set; }
+        public string? Content { get; set; }
         // Make this optional because we want this to be null if the message has not been read.
         public DateTime? DateRead { get; set; }
         // As soon as we create a new instance of this, then we set the utc time to the current server timestamp.

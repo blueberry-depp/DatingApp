@@ -28,16 +28,16 @@ namespace API.Helpers
             // Get access to our repository and to do that inside here, we can use the service locator pattern and
             // we actually use this inside our program.cs earlier and
             // we're going to specify that we want to get access to the IUserRepository.
-            var repo = resultContext.HttpContext.RequestServices.GetService<IUserRepository>();
+            var unitOfWork = resultContext.HttpContext.RequestServices.GetService<IUnitOfWork>();
 
             // Get hold of our user object.
-            var user = await repo.GetUserByIdAsync(userId);
+            var user = await unitOfWork.UserRepository.GetUserByIdAsync(userId);
 
             // Set the user last active.
-            user.LastActive = DateTime.Now;
+            user.LastActive = DateTime.UtcNow;
 
             // Save the changes.
-            await repo.SaveAllAsync();
+            await unitOfWork.Complete();
 
 
         }

@@ -15,14 +15,14 @@ namespace API.Controllers
     [Authorize]
     public class UsersController : BaseApiController
     {
-        private readonly IUserRepository _userRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
         private readonly IPhotoService _photoService;
 
         // Automapper is going to be smart enough to recognize any properties that are named the same to make DTO works.
-        public UsersController(IUserRepository userRepository, IMapper mapper, IPhotoService photoService) // Inject the automapper and photo service too.
+        public UsersController(IUnitOfWork unitOfWork, IMapper mapper, IPhotoService photoService) // Inject the automapper and photo service too.
         {
-            _userRepository = userRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
             _photoService = photoService;
         }
@@ -39,17 +39,17 @@ namespace API.Controllers
         // current gender if they don't specify anything inside userParams.
         public async Task<ActionResult<IEnumerable<MemberDto>>> GetUsers([FromQuery] UserParams userParams)
         {
-            // We need to get the current user in order to get access to the gender.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
-            userParams.CurrentUsername = user.UserName;
+            // We need to get the current user in order to get access to the gender or this is simply to get an the gender.
+            var gender = await _unitOfWork.UserRepository.GetUserGender(User.GetUsername());
+            userParams.CurrentUsername = User.GetUsername();
 
             if (string.IsNullOrEmpty(userParams.Gender))
             {
-                userParams.Gender = user.Gender == "male" ? "female" : "male";  
+                userParams.Gender = gender == "male" ? "female" : "male";  
             }
 
             // This is PagedList of type MemberDto. And this means we've got our pagination information inside here as well.
-            var users = await _userRepository.GetMembersAsync(userParams);
+            var users = await _unitOfWork.UserRepository.GetMembersAsync(userParams);
 
             // We've always got access to the HTTP request response stuff inside controller.
             Response.AddPaginationHeader(users.CurrentPage, users.PageSize, users.TotalCount, users.TotalPages);
@@ -63,9 +63,9 @@ namespace API.Controllers
         [HttpGet("{username}", Name = "GetUser")]
         public async Task<ActionResult<MemberDto>> GetUser(string username)
         {
+            var currentUsername = User.GetUsername();
             // Return MemberDto directly from our repository.
-            return await _userRepository.GetMemberAsync(username);
-
+            return await _unitOfWork.UserRepository.GetMemberAsync(username, isCurrentUser: currentUsername == username);
         }
 
 
@@ -85,7 +85,7 @@ namespace API.Controllers
             // this contains information about their identity.
             // And what we want to do inside here is find the claim that matches the name identifier, which is the
             // claim that we give the user in that token.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            var user = await _unitOfWork.UserRepository.GetUserByUsernameAsync(User.GetUsername());
 
             // This saves us manually mapping between our update dto and our user objects, ex: user.City = memberUpdateDto.City.
             _mapper.Map(memberUpdateDto, user);
@@ -93,10 +93,10 @@ namespace API.Controllers
             // Now our user object is flagged as being updated by entity framework,
             // whatever happens, even if our user has not been updated by simply adding this flag, we guarantee that 
             // we are not going to get an exception or an error when we come back from updating the user in our database.
-            _userRepository.Update(user);
+            _unitOfWork.UserRepository.Update(user);
 
             // We don't need to send any content back for put request.
-            if (await _userRepository.SaveAllAsync()) return NoContent();
+            if (await _unitOfWork.Complete()) return NoContent();
 
             // If this fails, then what we can do is just return a bad request.
             return BadRequest("Failed to update user");
@@ -110,7 +110,7 @@ namespace API.Controllers
             // We get the user and have user object,
             // don't forget, when we do this GetUserByUsernameAsync method, this includes our photos we're eagerly loading them in
             // this method and we need to for this.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            var user = await _unitOfWork.UserRepository.GetUserByUsernameAsync(User.GetUsername());
 
             var result = await _photoService.AddPhotoAsync(file);
 
@@ -125,20 +125,20 @@ namespace API.Controllers
 
             };
 
-            // Check to see if the users got any photos at the moment.
+            /*// Check to see if the users got any photos at the moment.
             if (user.Photos.Count == 0)
             {
                 // If it is, then we know that this is the first image that the users uploading, and
                 // if it is the first photo uploaded, then we're going to set this one to main.
                 photo.IsMain = true;
-            }
+            }*/
 
             // Add the photo.
-            user.Photos.Add(photo);
+            user.Photos?.Add(photo);
 
             // Save the changes to database and return the photo.
             // The response status code must 201 not 200.
-            if (await _userRepository.SaveAllAsync())
+            if (await _unitOfWork.Complete())
             {
                 // Map photo to photoDto.
                 // Return 201.
@@ -146,7 +146,7 @@ namespace API.Controllers
                 // 'username' is name of route parameter and set it to equal user.UserName.
                 // Check the headers in Location ex. https://localhost:5001/api/Users/cara
                 // that tell the client where to go to get the image that we've uploaded, now, the image is going to be in a collection of photos for cara.
-                return CreatedAtRoute("GetUser", new { username = user.UserName }, _mapper.Map<Photo, PhotoDto>(photo));
+                return CreatedAtRoute("GetUser", new { username = user.UserName }, _mapper.Map<PhotoDto>(photo));
             }
 
             // If fail.
@@ -161,21 +161,21 @@ namespace API.Controllers
             // Get the username from the token, this means we're validating that this is the user that they say they are. We can
             // trust the information inside the token. There's no trickery going on there because our servers signed the token
             // so they're authenticating to this method.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            var user = await _unitOfWork.UserRepository.GetUserByUsernameAsync(User.GetUsername());
 
             // Also remember that GetUserByUsernameAsync method that we get from our repository has an eager loading property for the user's photos collection, 
             // so we do have access to the photos inside here.
             // And this is not asynchronous because we've already got the user in memory at this point, so we're not going to the database now,
-            // we've already done that inside the _userRepository.
+            // we've already done that inside the _unitOfWork.UserRepository.
             // Finally look for a photo with the ID that matches the photo ID we're getting from photoId parameter.
-            var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
+            var photo = user.Photos?.FirstOrDefault(x => x.Id == photoId);
 
             // Check to make sure the user is not trying to set a photo that is main to main. So if somehow they managed to do that,
             // which we will, of course, prevent them from doing on the client too.
             if (photo.IsMain) return BadRequest("This is already your main photo");
 
             // Get the current main photo.
-            var currentMain = user.Photos.FirstOrDefault(x => x.IsMain);
+            var currentMain = user.Photos?.FirstOrDefault(x => x.IsMain);
             // Check if the current main photo is null and set it to false.
             if (currentMain != null) currentMain.IsMain = false;
 
@@ -183,21 +183,22 @@ namespace API.Controllers
             photo.IsMain = true;
 
             // Save our changes back to the repository and for update we return no content, don't need to send anything back in this request.
-            if (await _userRepository.SaveAllAsync()) return NoContent();
+            if (await _unitOfWork.Complete()) return NoContent();
 
             // If fail.
             return BadRequest("Failed to set main photo");
         }
+
 
         [HttpDelete("delete-photo/{photoId}")]
         // When we delete a resource, then we don't need to send anything back to the client.
         public async Task<ActionResult> DeletePhoto(int photoId)
         {
             // Get the user object.
-            var user = await _userRepository.GetUserByUsernameAsync(User.GetUsername());
+            var user = await _unitOfWork.UserRepository.GetUserByUsernameAsync(User.GetUsername());
 
             // Get the photo that we're interested in deleting.
-            var photo = user.Photos.FirstOrDefault(x => x.Id == photoId);
+            var photo = user.Photos?.FirstOrDefault(x => x.Id == photoId);
 
             // Check the photo is not null.
             if (photo == null) return NotFound();
@@ -217,9 +218,9 @@ namespace API.Controllers
 
             // Remove photo from the database.
             // And all this does is add the tracking flag and we're updating our user at this point, remember, because the photos is a related entity on our user.
-            user.Photos.Remove(photo);
+            user.Photos?.Remove(photo);
 
-            if (await _userRepository.SaveAllAsync()) return Ok();
+            if (await _unitOfWork.Complete()) return Ok();
 
             // If we don't have success with saving.
             return BadRequest("Failed to delete the photo");

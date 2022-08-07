@@ -27,7 +27,7 @@ namespace API.Helpers
             CreateMap<MemberUpdateDto, AppUser>();
             CreateMap<RegisterDto, AppUser>();
 
-            // because there's a couple of properties or one property that we cannot
+            // Because there's a couple of properties or one property that we cannot
             // get automapper to do for us, and that's for the user photo.
             CreateMap<Message, MessageDto>()
                // This is for sender.
@@ -38,8 +38,6 @@ namespace API.Helpers
                .ForMember(dest => dest.RecipientPhotoUrl, opt => opt.MapFrom(src =>
                     src.Recipient.Photos.FirstOrDefault(x => x.IsMain).Url));
             //CreateMap<MessageDto, Message>();
-            // When we return our dates to the client. We're going to have that Z on the end of it.
-            CreateMap<DateTime, DateTime>().ConvertUsing(d => DateTime.SpecifyKind(d, DateTimeKind.Utc));
 
 
 

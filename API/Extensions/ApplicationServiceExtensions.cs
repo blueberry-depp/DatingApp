@@ -19,10 +19,11 @@ namespace API.Extensions
             // AddScoped: when instantiated is created and then it stop when our http request are finished(suit for http request).
             services.AddScoped<ITokenService, TokenService>();
             services.AddScoped<IPhotoService, PhotoService>();
-            services.AddScoped<ILikesRepository, LikesRepository>();
-            services.AddScoped<IMessageRepository, MessageRepository>();
+            // When we inject UnitOfWork into a controller then it's going to have an instance,
+            // they're going to be using the data context that's injected into the unit of work. And that's the idea we pass that same
+            // instance, the single instance to each of our repositories.
+            services.AddScoped<IUnitOfWork, UnitOfWork>();
             services.AddScoped<LogUserActivity>();
-            services.AddScoped<IUserRepository, UserRepository>();
 
             // We only have a single project, so we only have a single assembly of where this can be created, so we use typeof(),
             // this is enough for Automapper to go ahead and find those profiles.

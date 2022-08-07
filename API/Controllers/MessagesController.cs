@@ -12,14 +12,13 @@ namespace API.Controllers
     [Authorize]
     public class MessagesController : BaseApiController
     {
-        private readonly IUserRepository _userRepository;
-        private readonly IMessageRepository _messageRepository;
+        private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
 
-        public MessagesController(IUserRepository userRepository, IMessageRepository messageRepository, IMapper mapper)
+
+        public MessagesController(IUnitOfWork unitOfWork, IMapper mapper)
         {
-            _userRepository = userRepository;
-            _messageRepository = messageRepository;
+            _unitOfWork = unitOfWork;
             _mapper = mapper;
         }
 
@@ -38,9 +37,9 @@ namespace API.Controllers
 
             // Get hold of both of our users in the sender and the recipient as we need to populate the message.
             // Get the sender user. 
-            var sender = await _userRepository.GetUserByUsernameAsync(username);
+            var sender = await _unitOfWork.UserRepository.GetUserByUsernameAsync(username);
             // Get the recipient user.
-            var recipient = await _userRepository.GetUserByUsernameAsync(createMessageDto.RecipientUsername);
+            var recipient = await _unitOfWork.UserRepository.GetUserByUsernameAsync(createMessageDto.RecipientUsername);
 
             // If it's not found, then we're going to return not found because we could not find the user.
             if (recipient == null) return NotFound();
@@ -56,10 +55,10 @@ namespace API.Controllers
             };
 
             // What we want to return from this is a MessageDto. So we will also need to bring in IMapper into what we're doing here.
-            _messageRepository.AddMessage(message);
+            _unitOfWork.MessageRepository.AddMessage(message);
 
             // Map from message.
-            if (await _messageRepository.SaveAllAsync()) return Ok(_mapper.Map<MessageDto>(message));
+            if (await _unitOfWork.Complete()) return Ok(_mapper.Map<MessageDto>(message));
 
             // If we don't manage to save it, return a bad request.
             return BadRequest("Failed to send message");
@@ -73,26 +72,12 @@ namespace API.Controllers
         public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessagesForUser([FromQuery] MessageParams messageParams)
         {
             messageParams.Username = User.GetUsername();
-            var messages = await _messageRepository.GetMessagesForUser(messageParams);
+            var messages = await _unitOfWork.MessageRepository.GetMessagesForUser(messageParams);
 
             // Add pagination header.
             Response.AddPaginationHeader(messages.CurrentPage, messages.PageSize, messages.TotalCount, messages.TotalPages);
 
             return Ok(messages);
-        }
-
-        // Give this root parameter.
-        // username: username of the other user.
-        // Remember, we've always got access to the current user name inside controllers. So we only need to know who the other
-        // participant in this conversation is.
-        // string username: is the other user.
-        [HttpGet("thread/{username}")]
-        public async Task<ActionResult<IEnumerable<MessageDto>>> GetMessageThread(string username)
-        {
-            // Get current username.
-            var currentUsername = User.GetUsername();
-
-            return Ok(await _messageRepository.GetMessageThread(currentUsername, username));
         }
 
 
@@ -103,7 +88,7 @@ namespace API.Controllers
             var username = User.GetUsername();
 
             // The message must include the sender and recipient.
-            var message = await _messageRepository.GetMessage(id);
+            var message = await _unitOfWork.MessageRepository.GetMessage(id);
 
             // Check if either the sender username or the recipient username is not equal to the username,
             // then this message has nothing to do with that user.
@@ -113,9 +98,9 @@ namespace API.Controllers
             if (message.Recipient.UserName == username) message.RecipientDeleted = true;
 
             // Check if the sender and recipient deleted the message, then we deleted from the server.
-            if (message.SenderDeleted && message.RecipientDeleted) _messageRepository.DeleteMessage(message);
+            if (message.SenderDeleted && message.RecipientDeleted) _unitOfWork.MessageRepository.DeleteMessage(message);
 
-            if (await _messageRepository.SaveAllAsync()) return Ok();
+            if (await _unitOfWork.Complete()) return Ok();
 
             // If doesn't work then return bad request.
             return BadRequest("Problem deleting the message");

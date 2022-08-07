@@ -7,6 +7,7 @@ import {HubConnection, HubConnectionBuilder} from "@microsoft/signalr";
 import {User} from "../_models/user";
 import {BehaviorSubject, take} from "rxjs";
 import {Group} from "../_models/group";
+import {BusyService} from "./busy.service";
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +21,11 @@ export class MessageService {
   private messageThreadSource = new BehaviorSubject<Message[]>([])
   messageThread$ = this.messageThreadSource.asObservable()
 
+  constructor(private http: HttpClient, private busyService: BusyService) {
+  }
+
   createHubConnection(user: User, otherUsername: string) {
+    this.busyService.busy()
     this.hubConnection = new HubConnectionBuilder()
       // Pass up the other username as a query string with the key of users.
       .withUrl(`${this.hubUrl}message?user=${otherUsername}`, {
@@ -30,7 +35,10 @@ export class MessageService {
       .build()
 
     // Start the connection.
-    this.hubConnection.start().catch(error => console.log(error))
+    // We have here is a promise that's returned from the start().
+    this.hubConnection.start()
+      .catch(error => console.log(error))
+      .finally(() => this.busyService.idle())
 
     // Listen for the server event for ReceiveMessageThread methods, we'll get the messages.
     // We're going to get the message thread when we join a message group.
@@ -76,12 +84,13 @@ export class MessageService {
   stopHubConnection() {
     // Add safety conditional so that we only try and stop it if it is actually in existence due to method inside ngDestroy.
     if (this.hubConnection) {
+      // Clear the messages when the hub connection is stopped.
+      this.messageThreadSource.next([])
       this.hubConnection.stop().catch(error => console.log(error))
     }
   }
 
-  constructor(private http: HttpClient,) {
-  }
+
 
   getMessages(pageNumber: number, pageSize: number, container: any) {
     let params = getPaginationHeaders(pageNumber, pageSize)
@@ -100,11 +109,10 @@ export class MessageService {
   async sendMessage(username: string, content: string) {
     // The way that we execute a method on server is to use the invoke method, and it returns promise.
     // For the body content, we past the object and must match to the CreateMessageDto.
-    try {
-      return await this.hubConnection.invoke('SendMessage', {recipientUsername: username, content});
-    } catch (error) {
-      return console.log(error);
-    }
+
+      return await this.hubConnection.invoke('SendMessage', {recipientUsername: username, content})
+        .catch(error => console.log(error));
+
   }
 
   deleteMessage(id: number) {
