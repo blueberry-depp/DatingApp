@@ -172,7 +172,6 @@ namespace API.Data.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("Username")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.HasKey("ConnectionId");
