@@ -1,6 +1,3 @@
-
-
-
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -12,6 +9,8 @@ builder.Services.AddSignalR();
 
 // Configure the HTTP request pipeline
 var app = builder.Build();
+
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 // Regardless of which we're running in, we're just going to use our middleware
 app.UseMiddleware<ExceptionMiddleware>();
