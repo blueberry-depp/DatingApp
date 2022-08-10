@@ -90,8 +90,6 @@ export class MessageService {
     }
   }
 
-
-
   getMessages(pageNumber: number, pageSize: number, container: any) {
     let params = getPaginationHeaders(pageNumber, pageSize)
     params = params.append('Container', container)
