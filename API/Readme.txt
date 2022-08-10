@@ -19,3 +19,6 @@ CloudinarySettings:ApiKey
 CloudinarySettings:ApiSecret
 CloudinarySettings:CloudName
 DATABASE_URL
+
+git checkout -b FixMessages
+git commit -m "Applied Fix"
